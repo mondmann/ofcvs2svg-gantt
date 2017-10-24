@@ -17,12 +17,16 @@ setup(
     license = "GPLv3",
     keywords = "gantt omnifocus",
     url = "https://github.com/mondmann/ofcvs2svg-gantt",
-    packages=['ofcsv2svg'],
+    scripts=['ofcsv2svg/ofcsv2svg.py'],
     long_description=read('README.md'),
+    install_requires=['python-gantt'],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Programming Language :: Python :: 3.6",
+        "Environment :: Console",
+        "Intended Audience :: End Users/Desktop",
+
     ],
 )
