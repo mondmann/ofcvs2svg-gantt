@@ -4,6 +4,10 @@ Converter from OmniFocus CSV Export to Gantt Diagram (SVG)
 Sometimes I want to see an overview of certain tasks in [OmniFocus](https://www.omnigroup.com/omnifocus). This script is to convert 
 a CSV export of OmniFocus tasks to gantt with [python-gantt](http://xael.org/pages/python-gantt-en.html).
 
+## Installation
+
+    pip install git+https://github.com/mondmann/ofcvs2svg-gantt
+
 ## Usage
 
     usage: ofcsv2svg [-h] [--outfile OUTFILE] [--start YYYY-MM-DD]
