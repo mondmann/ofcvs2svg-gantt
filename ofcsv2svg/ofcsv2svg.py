@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # convert omni focus csv to svg gantt
-
-from typing import Dict
-
+import argparse
 import csv
-import gantt
 import datetime
-import sys
 import os
+from typing import Dict, List
+
+import gantt
 
 
 class Action(object):
@@ -59,7 +58,8 @@ class ActionFactory(object):
         return self.__actions
 
 
-def main(csvfilename: str, svgfilename: str):
+def convert(csvfilename: str, svgfilename: str, start: datetime = None, end: datetime = None, nwdays: List[int] = None):
+    gantt.define_not_worked_days([] if nwdays is None else nwdays)  # for OmniFocus, every day is a working day
     af = ActionFactory()
     af.read_csv(csvfilename)
 
@@ -68,16 +68,15 @@ def main(csvfilename: str, svgfilename: str):
                 [a.due_date for a in af.actions if a.due_date is not None] + \
                 [a.completion_date for a in af.actions if a.completion_date is not None] + \
                 [datetime.date.today()]
-    start = min(all_dates)
-    end = max(all_dates)
+    start = min(all_dates) if start is None else start
+    end = max(all_dates) if end is None else end
     for action in af.actions:
         task_start = action.start_date or start
         task_end = action.completion_date or action.due_date or end
-        task_duration = (task_end - task_start).days
 
         task = gantt.Task(name=action.name,
                           start=task_start,
-                          duration=task_duration)
+                          stop=task_end)
 
         if action.project not in projects:
             projects[action.project] = gantt.Project(name=action.project)
@@ -93,14 +92,45 @@ def main(csvfilename: str, svgfilename: str):
                                    today=datetime.date.today())
 
 
-if len(sys.argv) > 3:
-    print("Usage: ofcvs2svg <infile> [<outfile>]")
-    exit(1)
-else:
-    infilename = sys.argv[1]
-    if len(sys.argv) == 2:
-        outfilename = os.path.splitext(infilename)[0] + ".svg"
-    else:
-        outfilename = sys.argv[2]
+def valid_date(s):
+    try:
+        return datetime.datetime.strptime(s, "%Y-%m-%d").date()
+    except ValueError:
+        msg = "Not a valid date: '{0}'.".format(s)
+        raise argparse.ArgumentTypeError(msg)
 
-    main(infilename, outfilename)
+
+def valid_weekday(s):
+    msg = "Not a valid weekday: '{0}'.".format(s)
+    exception = argparse.ArgumentTypeError(msg)
+    try:
+        day = int(s)
+        if day not in range(7):
+            raise exception
+        else:
+            return day
+    except ValueError:
+        raise exception
+
+
+def main():
+    argparser = argparse.ArgumentParser(description="Convert OmniFocus CSV export to GANTT SVG")
+    argparser.add_argument("infile", help="Input file in CSV format exported from OmniFocus")
+    argparser.add_argument("--outfile", "-o", help="Output filename for SVG document")
+    argparser.add_argument("--start", "-s", help="Override start date manually.", type=valid_date, metavar="YYYY-MM-DD")
+    argparser.add_argument("--end", "-e", help="Override end date manually.", type=valid_date, metavar="YYYY-MM-DD")
+    argparser.add_argument("--notworking", "-n",
+                           help="add day of week you are not working (0: monday .. 6: sunday). Default is none. " +
+                                "Use multiple times for multiple days (e. g. '-n 5 -n 6' for weekends).",
+                           action="append", type=valid_weekday, metavar="N")
+    args = argparser.parse_args()
+
+    if args.outfile is not None:
+        outfile = args.outfile
+    else:
+        outfile = os.path.splitext(args.infile)[0] + ".svg"
+    convert(args.infile, outfile, start=args.start, end=args.end, nwdays=args.notworking)
+
+
+if __name__ == "__main__":
+    main()
